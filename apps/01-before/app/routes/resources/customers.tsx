@@ -4,6 +4,7 @@ import { useFetcher } from '@remix-run/react'
 import clsx from 'clsx'
 import { useCombobox } from 'downshift'
 import { useId, useState } from 'react'
+import { useSpinDelay } from 'spin-delay'
 import invariant from 'tiny-invariant'
 import { LabelText } from '~/components'
 import { searchCustomers } from '~/models/customer.server'
@@ -13,6 +14,7 @@ export async function loader({ request }: LoaderArgs) {
 	await requireUser(request)
 	const url = new URL(request.url)
 	const query = url.searchParams.get('query')
+	await new Promise(r => setTimeout(r, 30)) // <-- add delay
 	invariant(typeof query === 'string', 'query is required')
 	return json({
 		customers: await searchCustomers(query),
@@ -47,8 +49,11 @@ export function CustomerCombobox({ error }: { error?: string | null }) {
 
 	// 🐨 add pending state
 	const displayMenu = cb.isOpen && customers.length > 0
-	const showSpinner = customerFetcher.state !== 'idle'
-
+	const busy = customerFetcher.state !== 'idle'
+	const showSpinner = useSpinDelay(busy, {
+		delay: 150,
+		minDuration: 500,
+	})
 
 	return (
 		<div className="relative">
